@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
+	//"compress/gzip"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -9,6 +12,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/codegangsta/cli"
 	"golang.org/x/oauth2"
@@ -22,13 +26,52 @@ type mutateTransport struct {
 }
 
 func (t *mutateTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+	request.Header.Del("Accept-Encoding")
+
 	response, err := t.transport.RoundTrip(request)
 
-	body, err := httputil.DumpResponse(response, true)
-	if err != nil {
-		return nil, err
+	if strings.HasPrefix(request.URL.Path, "/discovery") {
+		log.Printf("changing discovery contents -- %s", request.URL.Path)
+
+		body, err := httputil.DumpResponse(response, true)
+		if err != nil {
+			return nil, err
+		}
+
+		/*
+			r, err := gzip.NewReader(bytes.NewBuffer(body))
+			if err != nil {
+				log.Printf("gzip decompress: %d", err)
+			}
+		*/
+
+		var message bytes.Buffer
+		scanner := bufio.NewScanner(bytes.NewBuffer(body))
+		afterHeaders := false
+		for scanner.Scan() {
+			if afterHeaders {
+				message.WriteString(scanner.Text())
+				message.WriteString("\r\n")
+			}
+			if scanner.Text() == "" {
+				afterHeaders = true
+			}
+		}
+
+		var s map[string]interface{}
+		if err := json.Unmarshal(message.Bytes(), &s); err != nil {
+			log.Printf("JSON unmarshall: %s", err)
+		}
+
+		s["baseUrl"] = strings.Replace(s["baseUrl"].(string), "www.googleapis.com", "localhost:10000", -1)
+		s["rootUrl"] = strings.Replace(s["rootUrl"].(string), "www.googleapis.com", "localhost:10000", -1)
+
+		newmessage, err := json.Marshal(s)
+		if err != nil {
+			log.Printf("JSON marshall: %s", err)
+		}
+		response.Body = ioutil.NopCloser(bytes.NewBuffer(newmessage))
 	}
-	log.Print(string(body))
 
 	return response, err
 }
