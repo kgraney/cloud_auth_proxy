@@ -98,10 +98,6 @@ func BuildReverseProxy() *httputil.ReverseProxy {
 		req.URL.Host = target.Host
 		req.Host = target.Host
 		//req.URL.Path =
-
-		var buf bytes.Buffer
-		req.Write(&buf)
-		log.Print(&buf)
 	}
 	return &httputil.ReverseProxy{
 		Director:  director,
