@@ -1,9 +1,6 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
-	//"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -12,69 +9,13 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/codegangsta/cli"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
-	//"github.com/apcera/gssapi/spnego"
-	//"github.com/elazarl/goproxy"
 )
-
-type mutateTransport struct {
-	transport http.RoundTripper
-}
-
-func (t *mutateTransport) RoundTrip(request *http.Request) (*http.Response, error) {
-	request.Header.Del("Accept-Encoding")
-
-	response, err := t.transport.RoundTrip(request)
-
-	if strings.HasPrefix(request.URL.Path, "/discovery") {
-		log.Printf("changing discovery contents -- %s", request.URL.Path)
-
-		body, err := httputil.DumpResponse(response, true)
-		if err != nil {
-			return nil, err
-		}
-
-		/*
-			r, err := gzip.NewReader(bytes.NewBuffer(body))
-			if err != nil {
-				log.Printf("gzip decompress: %d", err)
-			}
-		*/
-
-		var message bytes.Buffer
-		scanner := bufio.NewScanner(bytes.NewBuffer(body))
-		afterHeaders := false
-		for scanner.Scan() {
-			if afterHeaders {
-				message.WriteString(scanner.Text())
-				message.WriteString("\r\n")
-			}
-			if scanner.Text() == "" {
-				afterHeaders = true
-			}
-		}
-
-		var s map[string]interface{}
-		if err := json.Unmarshal(message.Bytes(), &s); err != nil {
-			log.Printf("JSON unmarshall: %s", err)
-		}
-
-		s["baseUrl"] = strings.Replace(s["baseUrl"].(string), "www.googleapis.com", "localhost:10000", -1)
-		s["rootUrl"] = strings.Replace(s["rootUrl"].(string), "www.googleapis.com", "localhost:10000", -1)
-
-		newmessage, err := json.Marshal(s)
-		if err != nil {
-			log.Printf("JSON marshall: %s", err)
-		}
-		response.Body = ioutil.NopCloser(bytes.NewBuffer(newmessage))
-	}
-
-	return response, err
-}
 
 func BuildReverseProxy() *httputil.ReverseProxy {
 	// TODO: renew oauth2 tokens
@@ -101,8 +42,63 @@ func BuildReverseProxy() *httputil.ReverseProxy {
 	}
 	return &httputil.ReverseProxy{
 		Director:  director,
-		Transport: &mutateTransport{client.Transport},
+		Transport: client.Transport,
 	}
+}
+
+func proxyHandler(p *httputil.ReverseProxy) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Processing response from %s", r.URL)
+		// Serve the response from Google transparently back.
+		p.ServeHTTP(w, r)
+	}
+}
+
+func discoveryHandler(w http.ResponseWriter, req *http.Request) {
+	log.Printf("Handling discovery request %s", req.URL)
+	//log.Printf("%#v", *req)
+
+	// Send a request to Google.
+	newreq, _ := http.NewRequest(req.Method, "https://www.googleapis.com"+req.RequestURI, req.Body)
+	newreq.Close = true
+	newreq.Body = req.Body
+	client := http.Client{}
+	resp, err := client.Do(newreq)
+	if err != nil {
+		log.Printf("discoveryHandler Do: %s", err)
+	}
+
+	// Modify the response body as needed.
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+
+	var s map[string]interface{}
+	if err := json.Unmarshal(body, &s); err != nil {
+		log.Printf("JSON unmarshall: %s", err)
+	}
+
+	// For actual API documentation we change the hostname.
+	if b, _ := regexp.MatchString("/discovery/v1/apis/.*/.*", req.URL.Path); b {
+		s["baseUrl"] = strings.Replace(s["baseUrl"].(string), "www.googleapis.com", "localhost:10000", -1)
+		s["rootUrl"] = strings.Replace(s["rootUrl"].(string), "www.googleapis.com", "localhost:10000", -1)
+		s["auth"] = nil // TODO: is this respected by anything?
+	}
+
+	// For the index of APIs we also change the hostname.
+	if b, _ := regexp.MatchString("/discovery/v1/apis(/)?$", req.URL.Path); b {
+		for _, x := range s["items"].([]interface{}) {
+			m := x.(map[string]interface{})
+			m["discoveryRestUrl"] = strings.Replace(m["discoveryRestUrl"].(string), "www.googleapis.com", "localhost:10000", -1)
+		}
+	}
+
+	// Write the modified response back to the client.
+	// TODO: include headers from Google?
+	newbody, err := json.MarshalIndent(s, "", "    ")
+	if err != nil {
+		log.Printf("JSON marshall: %s", err)
+	}
+	w.Write(newbody)
 }
 
 func main() {
@@ -125,14 +121,9 @@ func main() {
 
 		log.Printf("Reverse proxy to %s://%s will listen on %d", scheme, host, port)
 
-		/*
-			proxy := httputil.NewSingleHostReverseProxy(&url.URL{
-				Scheme: scheme,
-				Host:   host,
-			})
-		*/
-		proxy := BuildReverseProxy()
-		log.Fatal(http.ListenAndServeTLS(fmt.Sprintf(":%d", port), "/home/kevin/go/server.pem", "/home/kevin/go/server.key", proxy))
+		http.HandleFunc("/discovery/", discoveryHandler)
+		http.HandleFunc("/", proxyHandler(BuildReverseProxy()))
+		log.Fatal(http.ListenAndServeTLS(fmt.Sprintf(":%d", port), "/home/kevin/go/server.pem", "/home/kevin/go/server.key", nil))
 	}
 	app.Run(os.Args)
 }
