@@ -11,7 +11,8 @@ import (
 
 func BuildReverseProxy() *httputil.ReverseProxy {
 	// TODO: renew oauth2 tokens
-	data, err := ioutil.ReadFile("/home/kevin/Google Sandbox-42115b17cf96.json")
+	logger.Info("Constructing reverse proxy")
+	data, err := ioutil.ReadFile("/home/kmg/Google Sandbox-42115b17cf96.json")
 	if err != nil {
 		logger.Fatal(err)
 	}

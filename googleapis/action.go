@@ -22,5 +22,8 @@ func Main(c *cli.Context) {
 
 	http.HandleFunc("/discovery/", discoveryHandler)
 	http.HandleFunc("/", proxyHandler(BuildReverseProxy()))
-	log.Fatal(http.ListenAndServeTLS(fmt.Sprintf(":%d", port), "/home/kevin/go/server.pem", "/home/kevin/go/server.key", nil))
+	log.Fatal(http.ListenAndServeTLS(fmt.Sprintf(":%d", port),
+		"/home/kmg/server.pem",
+		"/home/kmg/server.key",
+		nil))
 }

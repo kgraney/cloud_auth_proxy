@@ -4,3 +4,7 @@ go:
     - 1.5
     - 1.6
     - tip
+
+script:
+    - for i in $(find . -iname "*.go"); do gofmt -d $i; done 
+    - echo '! for i in $(find . -iname "*.go"); do gofmt -l $i; done | read' | bash
