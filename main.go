@@ -17,6 +17,14 @@ func main() {
 			Name:  "port",
 			Usage: "The port to listen on",
 		},
+		cli.StringFlag{
+			Name:  "certfile",
+			Usage: "The SSL certificate file to use (e.g. server.pem)",
+		},
+		cli.StringFlag{
+			Name:  "keyfile",
+			Usage: "The SSL keyfile to use (e.g. server.key)",
+		},
 	}
 
 	app.Commands = []cli.Command{
@@ -24,6 +32,12 @@ func main() {
 			Name:   "googleapis",
 			Usage:  "Start a reverse proxy to googleapis.com",
 			Action: googleapis.Main,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "credentials",
+					Usage: "Google API credentials (e.g. \"Google Sandbox.json\")",
+				},
+			},
 		},
 	}
 

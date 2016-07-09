@@ -9,16 +9,18 @@ import (
 	"net/url"
 )
 
-func BuildReverseProxy() *httputil.ReverseProxy {
+func BuildReverseProxy(credentialFile string) *httputil.ReverseProxy {
 	// TODO: renew oauth2 tokens
 	logger.Info("Constructing reverse proxy")
-	data, err := ioutil.ReadFile("/home/kmg/Google Sandbox-42115b17cf96.json")
+
+	logger.Info("Reading Google credentials from ", credentialFile)
+	data, err := ioutil.ReadFile(credentialFile)
 	if err != nil {
-		logger.Fatal(err)
+		logger.Fatal("Error reading Google credentials: ", err)
 	}
 	conf, err := google.JWTConfigFromJSON(data, "https://www.googleapis.com/auth/bigquery")
 	if err != nil {
-		logger.Fatal(err)
+		logger.Fatal("Error parsing JWT config from JSON: ", err)
 	}
 	client := conf.Client(oauth2.NoContext) // TODO: can we get a token without making a client?
 

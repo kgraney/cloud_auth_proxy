@@ -21,9 +21,9 @@ func Main(c *cli.Context) {
 	logger.Infof("Reverse proxy to %s://%s will listen on %d", Scheme, RemoteHostname, port)
 
 	http.HandleFunc("/discovery/", discoveryHandler)
-	http.HandleFunc("/", proxyHandler(BuildReverseProxy()))
+	http.HandleFunc("/", proxyHandler(BuildReverseProxy(c.String("credentials"))))
 	log.Fatal(http.ListenAndServeTLS(fmt.Sprintf(":%d", port),
-		"/home/kmg/server.pem",
-		"/home/kmg/server.key",
+		c.GlobalString("certfile"),
+		c.GlobalString("keyfile"),
 		nil))
 }
