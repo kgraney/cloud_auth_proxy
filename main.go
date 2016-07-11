@@ -31,7 +31,7 @@ func main() {
 		{
 			Name:   "googleapis",
 			Usage:  "Start a reverse proxy to googleapis.com",
-			Action: googleapis.Main,
+			Action: googleapis.ReverseProxyMain,
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:  "credentials",

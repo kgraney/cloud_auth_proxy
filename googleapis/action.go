@@ -15,7 +15,8 @@ var logger = log.WithFields(log.Fields{
 const Scheme string = "https"
 const RemoteHostname string = "www.googleapis.com"
 
-func Main(c *cli.Context) {
+// Starts a listening reverse proxy to googleapis.
+func ReverseProxyMain(c *cli.Context) {
 	port := c.GlobalInt("port")
 
 	logger.Infof("Reverse proxy to %s://%s will listen on %d", Scheme, RemoteHostname, port)
