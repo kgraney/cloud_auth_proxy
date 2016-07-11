@@ -5,6 +5,17 @@ go:
     - 1.6
     - tip
 
+sudo: required
+
+before_install:
+  - sudo apt-get update -q
+  - sudo apt-get install -y gcc libkrb5-dev
+  - go get -v
+  - go get -v github.com/stretchr/testify
+
+install: true
+
 script:
     - for i in $(find . -iname "*.go"); do gofmt -d $i; done 
     - echo '! for i in $(find . -iname "*.go"); do gofmt -l $i; done | read' | bash
+    - go test -v -race ./...
