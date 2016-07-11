@@ -6,9 +6,9 @@ import (
 	"os"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/apcera/gssapi"
-	"github.com/apcera/gssapi/spnego"
 	"github.com/elazarl/goproxy"
+	"github.com/kgraney/gssapi"
+	"github.com/kgraney/gssapi/spnego"
 )
 
 var ProxyAuthConnectNegotiate = &goproxy.ConnectAction{
