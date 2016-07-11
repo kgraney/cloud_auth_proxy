@@ -46,8 +46,8 @@ func main() {
 			Action: cloudproxy.CloudProxyMain,
 			Flags: []cli.Flag{
 				cli.StringFlag{
-					Name:  "google-credentials",
-					Usage: "Google API credentials (e.g. \"Google Sandbox.json\")",
+					Name:  "google-credential",
+					Usage: "Google API credential (e.g. \"Google Sandbox.json\")",
 				},
 				cli.StringFlag{
 					Name:  "krb-credential",

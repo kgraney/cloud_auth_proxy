@@ -19,8 +19,15 @@ func CloudProxyMain(c *cli.Context) {
 
 	krbCredential := c.String("krb-credential")
 	if krbCredential != "" {
-		logger.Infof("Using Kerberos credential %s", krbCredential)
+		logger.Infof("Configuring Kerberos credential %s", krbCredential)
 		proxy.ConfigureKerberos(krbCredential)
 	}
+
+	googCredentialFile := c.String("google-credential")
+	if googCredentialFile != "" {
+		logger.Infof("Configuring Google credential from file %s", googCredentialFile)
+		proxy.ConfigureGoogle(googCredentialFile)
+	}
+
 	proxy.ListenAndServe(port)
 }
