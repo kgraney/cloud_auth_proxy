@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/codegangsta/cli"
+	"github.com/kgraney/cloud_auth_proxy/cloudproxy"
 	"github.com/kgraney/cloud_auth_proxy/googleapis"
 	"os"
 )
@@ -31,11 +32,26 @@ func main() {
 		{
 			Name:   "googleapis",
 			Usage:  "Start a reverse proxy to googleapis.com",
-			Action: googleapis.Main,
+			Action: googleapis.ReverseProxyMain,
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:  "credentials",
 					Usage: "Google API credentials (e.g. \"Google Sandbox.json\")",
+				},
+			},
+		},
+		{
+			Name:   "forward",
+			Usage:  "Start a forward proxy allowing access to public cloud providers",
+			Action: cloudproxy.CloudProxyMain,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "google-credential",
+					Usage: "Google API credential (e.g. \"Google Sandbox.json\")",
+				},
+				cli.StringFlag{
+					Name:  "krb-credential",
+					Usage: "Kerberos credential name (e.g. \"HTTP/hostname.domain.com\")",
 				},
 			},
 		},
