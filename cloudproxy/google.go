@@ -28,7 +28,9 @@ func (p CloudProxy) ConfigureGoogle(credentialFile string) {
 	if err != nil {
 		logger.Fatal("Error reading Google credentials: ", err)
 	}
-	conf, err := google.JWTConfigFromJSON(data, "https://www.googleapis.com/auth/bigquery")
+	conf, err := google.JWTConfigFromJSON(data,
+		"https://www.googleapis.com/auth/bigquery",
+		"https://www.googleapis.com/auth/devstorage.read_write")
 	if err != nil {
 		logger.Fatal("Error parsing JWT config from JSON: ", err)
 	}
